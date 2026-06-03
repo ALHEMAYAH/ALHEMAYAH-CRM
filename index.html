@@ -251,6 +251,7 @@ td{padding:10px 12px;font-size:12px;vertical-align:middle}
       <span class="nav-badge" id="nb-renewals" style="display:none">0</span>
     </div>
     <div class="nav-item" id="nv-geo" onclick="go('geo')"><i class="ti ti-filter" style="font-size:14px"></i>فلترة جغرافية</div>
+    <div class="nav-item" id="nv-bulk" onclick="go('bulk')"><i class="ti ti-cloud-upload" style="font-size:14px"></i>رفع جماعي</div>
     <div class="nav-item" id="nv-walog" onclick="go('walog')"><i class="ti ti-brand-whatsapp" style="font-size:14px"></i>سجل واتساب</div>
     <div class="nav-item" id="nv-templates" onclick="go('templates')"><i class="ti ti-message-edit" style="font-size:14px"></i>قوالب الرسائل</div>
     <div class="nav-item" id="nv-templates" onclick="go('templates')"><i class="ti ti-template" style="font-size:14px"></i>قوالب الرسائل</div>
@@ -457,6 +458,43 @@ td{padding:10px 12px;font-size:12px;vertical-align:middle}
     <div style="background:var(--bg-e);border:1px solid var(--br);border-radius:8px;padding:16px;white-space:pre-line;font-size:13px;line-height:1.8;max-height:60vh;overflow-y:auto;direction:rtl" id="tpl-preview-content"></div>
     <div style="margin-top:14px;font-size:11px;color:var(--tm);text-align:center">هذا مثال بيانات أول عميل في النظام</div>
     <button class="btn-s" style="width:100%;justify-content:center;margin-top:10px" onclick="closeModal()">إغلاق</button>
+  </div>
+
+
+  <!-- Payment Link Modal -->
+  <div class="modal" id="m-payment" style="display:none">
+    <div class="mh">
+      <span class="mt" style="display:flex;align-items:center;gap:8px">
+        💳 إضافة رابط دفع زينة
+      </span>
+      <button class="icon-btn" onclick="closeModal()"><i class="ti ti-x" style="font-size:13px"></i></button>
+    </div>
+    <div class="fs" id="pay-success" style="display:none;background:rgba(37,211,102,.1);border-color:rgba(37,211,102,.2);color:#25D366">
+      <i class="ti ti-circle-check" style="font-size:14px"></i>تم إرسال رابط الدفع للعميل ✓
+    </div>
+    <div style="padding:10px 13px;background:var(--bg-e);border-radius:8px;margin-bottom:14px;font-size:13px;color:var(--gold);font-weight:500" id="pay-client-name"></div>
+    
+    <div style="background:rgba(91,155,213,.08);border:1px solid rgba(91,155,213,.2);border-radius:8px;padding:11px 14px;margin-bottom:14px;font-size:11px;color:var(--blue);line-height:1.7">
+      <i class="ti ti-info-circle"></i>
+      ١. افتح تطبيق زينة على جوالك<br>
+      ٢. اضغط "طلب دفع" وأدخل المبلغ<br>
+      ٣. انسخ الرابط والصقه هنا
+    </div>
+
+    <div class="fg">
+      <label class="fl">المبلغ المطلوب (درهم) *</label>
+      <input id="pay-amount" type="number" placeholder="500" inputmode="numeric" style="direction:ltr;font-size:16px;font-weight:700;text-align:center">
+    </div>
+    <div class="fg">
+      <label class="fl">رابط الدفع من زينة *</label>
+      <input id="pay-link" type="url" placeholder="https://pay.ziina.com/..." style="direction:ltr;font-family:var(--mono);font-size:12px">
+    </div>
+    <div style="display:flex;gap:9px;margin-top:6px">
+      <button class="btn-p" style="flex:1;justify-content:center;background:#25D366;color:#fff" onclick="savePaymentLink()">
+        <i class="ti ti-send" style="font-size:13px"></i>إرسال للعميل
+      </button>
+      <button class="btn-s" onclick="closeModal()">إلغاء</button>
+    </div>
   </div>
 
   <!-- Confirm -->
@@ -800,7 +838,7 @@ function go(v){
   S.view=v;S.page=1;S.search='';
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
   const nv=document.getElementById('nv-'+v);if(nv)nv.classList.add('active');
-  const titles={dashboard:'لوحة التحكم',clients:'قائمة العملاء',visits:'جدولة الزيارات',tickets:'طلبات الصيانة',docs:'الوثائق',expired:'العقود والشهادات',geo:'فلترة جغرافية',users:'إدارة المستخدمين',renewals:'طلبات التجديد',walog:'سجل رسائل واتساب',templates:'قوالب رسائل واتساب'};
+  const titles={dashboard:'لوحة التحكم',clients:'قائمة العملاء',visits:'جدولة الزيارات',tickets:'طلبات الصيانة',docs:'الوثائق',expired:'العقود والشهادات',geo:'فلترة جغرافية',users:'إدارة المستخدمين',renewals:'طلبات التجديد',walog:'سجل رسائل واتساب',bulk:'رفع جماعي للوثائق',templates:'قوالب رسائل واتساب'};
   document.getElementById('tb-title').textContent=titles[v]||v;
   document.getElementById('tb-crumb').textContent='dashboard / '+v;
   const mc=document.getElementById('mc');mc.classList.remove('fade');void mc.offsetWidth;mc.classList.add('fade');
@@ -817,7 +855,7 @@ function goClient(cid){
 }
 function render(){
   const el=document.getElementById('mc');
-  const map={dashboard:renderDash,clients:renderClients,'client-detail':()=>renderClientDetail(S.currentClient),visits:renderVisitSchedule,tickets:renderTickets,docs:renderAllDocs,expired:renderExpired,geo:renderGeo,users:renderUsers,renewals:renderRenewals,walog:renderWALog,templates:renderTemplates};
+  const map={dashboard:renderDash,clients:renderClients,'client-detail':()=>renderClientDetail(S.currentClient),visits:renderVisitSchedule,tickets:renderTickets,docs:renderAllDocs,expired:renderExpired,geo:renderGeo,users:renderUsers,renewals:renderRenewals,walog:renderWALog,bulk:renderBulkUpload,templates:renderTemplates};
   el.innerHTML=(map[S.view]||renderDash)();
 }
 function updateBadges(){
@@ -1379,11 +1417,338 @@ function renderGeo(){
 // ════════════════════════════════════════
 // USERS MANAGEMENT
 // ════════════════════════════════════════
+// ════════════════════════════════════════════════════════
+// PAYMENT LINK (زينة)
+// ════════════════════════════════════════════════════════
+function openPaymentModal(renewalId){
+  if(!can('canEdit')){toast('ليس لديك صلاحية','err');return;}
+  S.paymentRenewalId = renewalId;
+  const r = (DB.renewals||[]).find(x=>x.id===renewalId);
+  if(!r) return;
+  showModal('m-payment');
+  document.getElementById('pay-client-name').textContent = r.clientName||'—';
+  document.getElementById('pay-amount').value  = r.amount||'';
+  document.getElementById('pay-link').value    = r.paymentLink||'';
+  document.getElementById('pay-success').style.display = 'none';
+}
+
+async function savePaymentLink(){
+  const r = (DB.renewals||[]).find(x=>x.id===S.paymentRenewalId);
+  if(!r) return;
+  const amount = document.getElementById('pay-amount').value.trim();
+  const link   = document.getElementById('pay-link').value.trim();
+  if(!amount){toast('أدخل المبلغ','err');return;}
+  if(!link){toast('أدخل رابط زينة','err');return;}
+  if(!link.includes('ziina.com')&&!link.startsWith('http')){toast('الرابط غير صحيح','err');return;}
+
+  r.amount      = amount;
+  r.paymentLink = link;
+  r.status      = 'awaiting_payment';
+  persist();
+
+  // Update in Supabase
+  if(IS_ONLINE){
+    fetch(SUPA_URL+'/rest/v1/renewal_requests?id=eq.'+r.id,{
+      method:'PATCH',
+      headers:{'apikey':SUPA_KEY,'Authorization':'Bearer '+SUPA_KEY,'Content-Type':'application/json','Prefer':'return=minimal'},
+      body: JSON.stringify({status:'awaiting_payment', notes: (r.notes||'')+'|AMOUNT:'+amount+'|LINK:'+link})
+    }).catch(()=>{});
+  }
+
+  document.getElementById('pay-success').style.display='flex';
+  toast('تم إرسال رابط الدفع للعميل ✓');
+  setTimeout(()=>{ closeModal(); render(); updateBadges(); }, 1200);
+}
+
+function markAsPaid(renewalId){
+  const r = (DB.renewals||[]).find(x=>x.id===renewalId);
+  if(!r) return;
+  r.status = 'paid';
+  persist();
+  if(IS_ONLINE){
+    fetch(SUPA_URL+'/rest/v1/renewal_requests?id=eq.'+renewalId,{
+      method:'PATCH',
+      headers:{'apikey':SUPA_KEY,'Authorization':'Bearer '+SUPA_KEY,'Content-Type':'application/json','Prefer':'return=minimal'},
+      body: JSON.stringify({status:'paid'})
+    }).catch(()=>{});
+  }
+  toast('تم تأكيد الدفع ✓');
+  render(); updateBadges();
+}
+
+// ════════════════════════════════════════════════════════
+// BULK DOCUMENT UPLOAD
+// ════════════════════════════════════════════════════════
+function renderBulkUpload(){
+  const regions = [...new Set(DB.clients.map(c=>c.regionFilter||c.region).filter(Boolean))].sort();
+  return`
+  <div style="background:rgba(91,155,213,.08);border:1px solid rgba(91,155,213,.2);border-radius:8px;padding:13px 16px;margin-bottom:16px;font-size:12px;color:var(--blue);line-height:1.7">
+    <i class="ti ti-info-circle" style="font-size:14px"></i>
+    ارفع وثائق كل عميل دفعة واحدة. النظام يتعرف تلقائياً على:
+    <strong>الشهادة</strong> · <strong>الرخصة</strong> · <strong>DRAWING</strong>
+  </div>
+
+  <div class="sc" style="margin-bottom:14px">
+    <div class="sch"><div class="sct"><i class="ti ti-user" style="font-size:13px"></i>اختر العميل</div></div>
+    <div class="scb">
+      <div class="toolbar" style="margin-bottom:0">
+        <div class="search-grp">
+          <div class="search-row">
+            <select class="sb-sel" onchange="S.bulkSearchBy=this.value;renderBulkSearch()">
+              <option value="name">الاسم</option>
+              <option value="region">المنطقة</option>
+              <option value="mem">رقم العضوية</option>
+            </select>
+            <input class="sb-inp" id="bulk-search" placeholder="ابحث عن العميل..."
+              oninput="renderBulkSearch()">
+          </div>
+        </div>
+        <select class="fsel" id="bulk-region-filter" onchange="renderBulkSearch()">
+          <option value="all">كل المناطق</option>
+          ${regions.map(r=>`<option value="${esc(r)}">${esc(r)}</option>`).join('')}
+        </select>
+      </div>
+      <div id="bulk-client-list" style="margin-top:10px;max-height:220px;overflow-y:auto;display:grid;gap:5px">
+        ${DB.clients.slice(0,10).map(c=>bulkClientRow(c)).join('')}
+      </div>
+    </div>
+  </div>
+
+  <div class="sc" id="bulk-upload-area" style="display:none;margin-bottom:14px">
+    <div class="sch">
+      <div class="sct" id="bulk-selected-name"><i class="ti ti-upload" style="font-size:13px"></i>رفع الوثائق</div>
+      <button class="btn-s btn-sm" onclick="document.getElementById('bulk-upload-area').style.display='none';document.getElementById('bulk-selected-client').textContent=''">
+        <i class="ti ti-x" style="font-size:11px"></i>تغيير العميل
+      </button>
+    </div>
+    <div class="scb">
+      <!-- Drop zone -->
+      <div id="bulk-dropzone"
+        style="border:2px dashed var(--br);border-radius:10px;padding:30px;text-align:center;cursor:pointer;transition:all .2s;margin-bottom:14px"
+        ondragover="event.preventDefault();this.style.borderColor='var(--gold)';this.style.background='var(--gdim)'"
+        ondragleave="this.style.borderColor='var(--br)';this.style.background=''"
+        ondrop="handleBulkDrop(event)"
+        onclick="document.getElementById('bulk-file-input').click()">
+        <i class="ti ti-cloud-upload" style="font-size:42px;color:var(--tm);display:block;margin-bottom:10px"></i>
+        <div style="font-size:13px;color:var(--ts);margin-bottom:5px">اسحب الملفات هنا أو اضغط للاختيار</div>
+        <div style="font-size:11px;color:var(--tm)">PDF فقط · الشهادة · الرخصة · DRAWING</div>
+        <input type="file" id="bulk-file-input" multiple accept=".pdf" style="display:none" onchange="handleBulkFiles(this.files)">
+      </div>
+
+      <!-- Files preview -->
+      <div id="bulk-files-list" style="display:none;margin-bottom:14px">
+        <div style="font-size:11px;color:var(--ts);margin-bottom:8px">الملفات المحددة:</div>
+        <div id="bulk-files-items" style="display:grid;gap:7px"></div>
+      </div>
+
+      <!-- Upload button -->
+      <button id="bulk-upload-btn" class="btn-p" style="width:100%;justify-content:center;display:none" onclick="executeBulkUpload()">
+        <i class="ti ti-cloud-upload" style="font-size:13px;color:#0D0F12"></i>
+        رفع الوثائق للعميل
+      </button>
+
+      <!-- Progress -->
+      <div id="bulk-progress" style="display:none;margin-top:10px">
+        <div style="background:var(--bg-e);border-radius:20px;height:8px;overflow:hidden">
+          <div id="bulk-progress-bar" style="height:100%;background:var(--gold);border-radius:20px;transition:width .3s;width:0%"></div>
+        </div>
+        <div id="bulk-progress-text" style="font-size:11px;color:var(--ts);margin-top:6px;text-align:center"></div>
+      </div>
+
+      <!-- Success -->
+      <div id="bulk-done" style="display:none;text-align:center;padding:16px">
+        <i class="ti ti-circle-check" style="font-size:36px;color:var(--green);display:block;margin-bottom:8px"></i>
+        <div style="font-size:13px;color:var(--green);font-weight:600">تم رفع الوثائق بنجاح ✓</div>
+        <button class="btn-s btn-sm" style="margin-top:10px" onclick="resetBulkUpload()">رفع لعميل آخر</button>
+      </div>
+    </div>
+  </div>`;
+}
+
+function bulkClientRow(c){
+  const docs = DB.docs.filter(d=>d.clientId===c.id).length;
+  return`<div style="display:flex;justify-content:space-between;align-items:center;padding:9px 12px;background:var(--bg-e);border-radius:7px;cursor:pointer;border:1px solid var(--br);transition:all .15s"
+    onmouseover="this.style.borderColor='var(--gold)'" onmouseout="this.style.borderColor='var(--br)'"
+    onclick="selectBulkClient('${c.id}','${esc(c.name)}')">
+    <div>
+      <div style="font-size:12px;font-weight:500">${esc(c.name)}</div>
+      <div style="font-size:10px;color:var(--tm)">${esc(c.regionFilter||c.region)} · ${esc(c.membershipNo||'')}</div>
+    </div>
+    <div style="display:flex;align-items:center;gap:8px">
+      <span style="font-size:10px;color:${docs>0?'var(--green)':'var(--tm)'}">${docs} وثيقة</span>
+      <i class="ti ti-chevron-left" style="font-size:12px;color:var(--tm)"></i>
+    </div>
+  </div>`;
+}
+
+function renderBulkSearch(){
+  const q = (document.getElementById('bulk-search')||{}).value||'';
+  const by = S.bulkSearchBy||'name';
+  const region = (document.getElementById('bulk-region-filter')||{}).value||'all';
+  let list = DB.clients.filter(c=>{
+    let m = true;
+    if(q){
+      const ql = q.toLowerCase();
+      if(by==='name') m = c.name.toLowerCase().includes(ql);
+      else if(by==='region') m = (c.regionFilter||c.region||'').toLowerCase().includes(ql);
+      else m = (c.membershipNo||'').includes(q);
+    }
+    if(region!=='all') m = m && (c.regionFilter||c.region)===region;
+    return m;
+  }).slice(0,20);
+  const el = document.getElementById('bulk-client-list');
+  if(el) el.innerHTML = list.length ? list.map(c=>bulkClientRow(c)).join('') :
+    '<div style="font-size:12px;color:var(--tm);padding:12px;text-align:center">لا توجد نتائج</div>';
+}
+
+S.bulkClientId = null;
+S.bulkFiles    = [];
+S.bulkSearchBy = 'name';
+S.paymentRenewalId = null;
+
+function selectBulkClient(id, name){
+  S.bulkClientId = id;
+  S.bulkFiles    = [];
+  const area = document.getElementById('bulk-upload-area');
+  if(area) area.style.display='block';
+  const nameEl = document.getElementById('bulk-selected-name');
+  if(nameEl) nameEl.innerHTML = '<i class="ti ti-upload" style="font-size:13px"></i> '+esc(name);
+  ['bulk-files-list','bulk-upload-btn','bulk-progress','bulk-done'].forEach(id=>{
+    const el=document.getElementById(id);if(el)el.style.display='none';
+  });
+  document.getElementById('bulk-dropzone').style.display='block';
+  // Scroll to upload area
+  area.scrollIntoView({behavior:'smooth'});
+}
+
+// Auto-detect document type from filename
+function detectDocType(filename){
+  const f = filename.toLowerCase().replace(/\s/g,'');
+  if(f.includes('شهادة')||f.includes('shahada')||f.includes('certificate')||f.includes('cert')) return 'safety_cert';
+  if(f.includes('رخصة')||f.includes('rukhsa')||f.includes('license')||f.includes('lic')) return 'license';
+  if(f.includes('drawing')||f.includes('مخطط')||f.includes('blueprint')) return 'blueprint';
+  return 'other';
+}
+function detectDocLabel(type){
+  return{safety_cert:'🛡 شهادة السلامة',license:'📋 الرخصة التجارية',blueprint:'🗺 المخطط',other:'📄 أخرى'}[type]||'📄 أخرى';
+}
+
+function handleBulkDrop(e){
+  e.preventDefault();
+  document.getElementById('bulk-dropzone').style.borderColor='var(--br)';
+  document.getElementById('bulk-dropzone').style.background='';
+  handleBulkFiles(e.dataTransfer.files);
+}
+
+function handleBulkFiles(files){
+  S.bulkFiles = Array.from(files).filter(f=>f.type==='application/pdf'||f.name.toLowerCase().endsWith('.pdf'));
+  if(!S.bulkFiles.length){toast('يرجى اختيار ملفات PDF فقط','err');return;}
+  const listEl = document.getElementById('bulk-files-items');
+  listEl.innerHTML = S.bulkFiles.map((f,i)=>{
+    const type = detectDocType(f.name);
+    const label = detectDocLabel(type);
+    return`<div style="display:flex;align-items:center;justify-content:space-between;padding:9px 12px;background:var(--bg-e);border-radius:7px;border:1px solid var(--br)" id="bulk-file-row-${i}">
+      <div style="display:flex;align-items:center;gap:9px">
+        <span style="font-size:18px">${label.split(' ')[0]}</span>
+        <div>
+          <div style="font-size:12px;font-weight:500">${esc(f.name)}</div>
+          <div style="font-size:10px;color:var(--tm)">${(f.size/1024).toFixed(0)} KB</div>
+        </div>
+      </div>
+      <select style="font-size:11px;width:auto;padding:5px 8px" onchange="S.bulkFiles[${i}]._type=this.value">
+        <option value="safety_cert" ${type==='safety_cert'?'selected':''}>شهادة السلامة</option>
+        <option value="license"     ${type==='license'?'selected':''}>الرخصة التجارية</option>
+        <option value="blueprint"   ${type==='blueprint'?'selected':''}>المخطط</option>
+        <option value="other"       ${type==='other'?'selected':''}>أخرى</option>
+      </select>
+    </div>`;
+  }).join('');
+  document.getElementById('bulk-files-list').style.display='block';
+  document.getElementById('bulk-upload-btn').style.display='flex';
+  document.getElementById('bulk-dropzone').style.display='none';
+}
+
+async function executeBulkUpload(){
+  if(!S.bulkClientId||!S.bulkFiles.length) return;
+  const btn = document.getElementById('bulk-upload-btn');
+  btn.style.display='none';
+  document.getElementById('bulk-progress').style.display='block';
+  document.getElementById('bulk-done').style.display='none';
+
+  const bar  = document.getElementById('bulk-progress-bar');
+  const text = document.getElementById('bulk-progress-text');
+  let done = 0;
+
+  for(let i=0; i<S.bulkFiles.length; i++){
+    const file  = S.bulkFiles[i];
+    const type  = file._type || detectDocType(file.name);
+    const label = {safety_cert:'شهادة السلامة',license:'الرخصة التجارية',blueprint:'المخطط',other:'أخرى'}[type];
+    text.textContent = 'جارٍ رفع: '+file.name+'...';
+
+    try{
+      let url = '';
+      if(IS_ONLINE){
+        // Upload to Supabase Storage
+        const ext      = file.name.split('.').pop().toLowerCase();
+        const fileName = S.bulkClientId+'_'+type+'_'+Date.now()+'.'+ext;
+        const uploadUrl= SUPA_URL+'/storage/v1/object/documents/'+fileName;
+        const res = await fetch(uploadUrl,{
+          method:'POST',
+          headers:{'apikey':SUPA_KEY,'Authorization':'Bearer '+SUPA_KEY,'Content-Type':file.type,'x-upsert':'true'},
+          body: file,
+        });
+        if(res.ok){
+          url = SUPA_URL+'/storage/v1/object/public/documents/'+fileName;
+        } else {
+          // Fallback to base64
+          url = await new Promise(r=>{const rd=new FileReader();rd.onload=e=>r(e.target.result);rd.readAsDataURL(file);});
+        }
+      } else {
+        url = await new Promise(r=>{const rd=new FileReader();rd.onload=e=>r(e.target.result);rd.readAsDataURL(file);});
+      }
+
+      // Save document record
+      const nd = {
+        id:          'doc'+Date.now().toString(36)+i,
+        clientId:    S.bulkClientId,
+        type:        type,
+        name:        label,
+        issueDate:   '',
+        expiryDate:  '',
+        url:         url,
+        mimeType:    'application/pdf',
+        uploadedAt:  today(),
+      };
+      DB.docs.push(nd);
+      await dbSave('documents', dToRow(nd));
+
+    }catch(e){ console.error('Upload error:', e); toast('خطأ في رفع '+file.name,'err'); }
+
+    done++;
+    bar.style.width  = Math.round(done/S.bulkFiles.length*100)+'%';
+    text.textContent = done+' من '+S.bulkFiles.length+' ملف';
+  }
+
+  persist();
+  document.getElementById('bulk-progress').style.display='none';
+  document.getElementById('bulk-done').style.display='block';
+  toast('تم رفع '+done+' وثيقة بنجاح ✓');
+}
+
+function resetBulkUpload(){
+  S.bulkClientId = null;
+  S.bulkFiles    = [];
+  document.getElementById('bulk-upload-area').style.display='none';
+  document.getElementById('bulk-search').value='';
+  renderBulkSearch();
+  window.scrollTo(0,0);
+}
+
 function renderRenewals(){
   const list=[...(DB.renewals||[])].sort((a,b)=>new Date(b.createdAt)-new Date(a.createdAt));
   const pending=list.filter(r=>r.status==='pending');
   const done=list.filter(r=>r.status!=='pending');
-  const st={pending:{c:'var(--amber)',bg:'rgba(232,168,56,.12)',l:'قيد المراجعة'},approved:{c:'var(--green)',bg:'rgba(125,196,125,.12)',l:'تم القبول'},rejected:{c:'var(--red)',bg:'rgba(224,82,82,.12)',l:'مرفوض'}};
+  const st={pending:{c:'var(--amber)',bg:'rgba(232,168,56,.12)',l:'قيد المراجعة'},approved:{c:'var(--green)',bg:'rgba(125,196,125,.12)',l:'تم القبول'},rejected:{c:'var(--red)',bg:'rgba(224,82,82,.12)',l:'مرفوض'},awaiting_payment:{c:'var(--blue)',bg:'rgba(91,155,213,.12)',l:'بانتظار الدفع'},paid:{c:'var(--green)',bg:'rgba(125,196,125,.15)',l:'✓ تم الدفع'}};
   return`
   <div style="margin-bottom:12px;display:flex;justify-content:space-between;align-items:center">
     <div style="font-size:12px;color:var(--ts)">${pending.length} طلب معلّق · ${list.length} إجمالي</div>
@@ -1413,7 +1778,11 @@ function renderRenewals(){
       <div style="display:flex;flex-direction:column;gap:5px;flex-shrink:0">
         ${r.status==='pending'&&can('canEdit')?`
         <button class="btn-g btn-sm" onclick="updateRenewalStatus('${r.id}','approved')"><i class="ti ti-check" style="font-size:11px"></i>قبول</button>
+        <button class="btn-s btn-sm" style="color:#25D366;border-color:rgba(37,211,102,.25)" onclick="openPaymentModal('${r.id}')">💳 رابط دفع</button>
         <button class="btn-d btn-sm" onclick="updateRenewalStatus('${r.id}','rejected')"><i class="ti ti-x" style="font-size:11px"></i>رفض</button>`:''}
+        ${(r.status==='awaiting_payment'||r.status==='approved')&&can('canEdit')?`
+        <button class="btn-s btn-sm" style="color:#25D366;border-color:rgba(37,211,102,.25)" onclick="openPaymentModal('${r.id}')">💳 رابط دفع</button>
+        <button class="btn-g btn-sm" onclick="markAsPaid('${r.id}')"><i class="ti ti-check" style="font-size:11px"></i>تم الدفع</button>`:''}
         ${can('canDelete')?`<button class="icon-btn del" onclick="deleteRenewal('${r.id}')"><i class="ti ti-trash" style="font-size:11px"></i></button>`:''}
       </div>
     </div>`;}).join('')}
